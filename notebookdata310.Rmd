@@ -1,0 +1,315 @@
+---
+title: "Workbook"
+output: html_document
+date: "2025-02-10"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown 
+
+```{r}
+library(socviz)
+library(ggplot2)
+library(dplyr)
+library(forcats)
+library(ggthemes)
+```
+
+
+```{r}
+?gss_sm
+skimr::skim(gss_sm)
+gss_sm <- gss_sm
+```
+```{r}
+p <- ggplot(data = gss_sm,
+            mapping = 
+              aes(x = bigregion,
+                  y = ..prop..,
+                  group = 1 ))
+p + 
+  geom_bar() +
+  labs(y = "Proportion")+
+  theme_grey()
+```
+```{r}
+df <- gss_sm |> group_by(religion)
+df
+```
+
+```{r}
+
+p <- ggplot(data = gss_sm,
+            mapping = 
+              aes(x = religion, 
+                  fill = religion))
+p + 
+  geom_bar() + 
+  guides( fill = "none" )
+```
+
+```{r}
+p <- ggplot(data = gss_sm,
+            mapping = 
+              aes(x = bigregion, 
+                  fill = religion))
+p + 
+  geom_bar(position = "fill")
+
+```
+
+```{r}
+p <- ggplot(data = gss_sm,
+            mapping = 
+              aes(x = bigregion, 
+                  fill = religion))
+p + 
+  geom_bar(position = "dodge",
+           mapping = 
+             aes(y = ..prop..,
+                 group = religion))
+```
+```{r}
+
+p <- ggplot(data = 
+              filter(midwest, 
+                     state %in% 
+                       c("OH", "WI")),
+            mapping = 
+              aes(x = percollege, 
+                  fill = state) )
+p + 
+  geom_histogram(alpha = 0.4, 
+                 bins =50)+
+  geom_density(alpha = .3)
+
+
+```
+
+
+```{r}
+p <- ggplot(data = midwest,
+            mapping = 
+              aes(x = area, 
+                  fill = state, 
+                  color = state))
+p + 
+  geom_density(alpha = 0.3)
+```
+```{r}
+oecd_sum
+```
+
+```{r}
+p <- ggplot(data = socviz::oecd_sum,
+            mapping = 
+              aes(x = year, 
+                  y = diff, 
+                  fill = hi_lo))
+p + 
+  geom_col() + 
+  guides(fill = "none") +
+  labs(x = NULL, 
+       y = "Difference in Years",
+       title = "The US Life Expectancy Gap",
+       subtitle = "Difference between US and OECD
+                   average life expectancies, 1960-2015",
+       caption = "Data: OECD. After a chart by Christopher Ingraham,
+                  Washington Post, December 27th 2017.") +
+  theme_minimal()
+```
+
+
+```{r}
+
+
+rel_by_region <- gss_sm |>
+    group_by( bigregion, religion ) |>
+    summarize( N = n() ) |>
+    mutate( freq = N / sum(N),
+            pct = round( (freq*100), 0) )
+
+
+rel_by_region
+```
+
+```{r}
+
+rel_by_region |>
+  ggplot(aes ( x = pct,
+               y = religion,
+               fill = religion))+
+  geom_bar( stat = "identity",
+            position = "dodge2")+
+  facet_wrap(~bigregion, nrow = 1)+
+  labs(x="Percentage",
+       y="")
+
+
+```
+
+
+
+```{r}
+
+summary(gss_sm)
+```
+
+```{r}
+
+organdata <- socviz::organdata
+
+DT::datatable(organdata)
+
+
+
+```
+
+```{r}
+
+organdata |>
+  ggplot(aes (x = donors,
+              y= country))+
+  geom_boxplot()
+
+
+```
+
+```{r}
+
+
+organdata <- organdata |> 
+  mutate(country = fct_reorder(country,
+                              donors,
+                              na.rm = T))
+
+
+
+```
+
+
+```{r}
+
+b <- ggplot(data = organdata,
+            mapping = 
+              aes(x = 
+                    fct_reorder(
+                      country, 
+                      donors, 
+                      na.rm=TRUE),
+                  y = donors, 
+                  fill = world))
+b + geom_boxplot() + 
+  labs(x=NULL) +
+  coord_flip() + 
+  theme(legend.position = "top")
+
+```
+
+```{r}
+
+
+by_country <- organdata |> 
+  group_by(consent_law, country) |>
+  summarize(donors_mean= mean(donors, na.rm = TRUE),
+            donors_sd = sd(donors, na.rm = TRUE),
+            gdp_mean = mean(gdp, na.rm = TRUE),
+            health_mean = mean(health, na.rm = TRUE),
+            roads_mean = mean(roads, na.rm = TRUE),
+            cerebvas_mean = mean(cerebvas, na.rm = TRUE))
+
+by_country
+
+```
+
+```{r}
+
+#More efficient version of the former
+
+by_country <- organdata |> 
+  group_by(consent_law, country) |>
+  summarize_if(is.numeric, lst(mean, sd), na.rm = TRUE) |>
+  ungroup()
+```
+
+
+
+```{r}
+ggplot(by_country,
+       mapping = aes(x= donors_mean,
+                     y = country))+
+  geom_point(mapping = aes(color = consent_law),
+             size = 2.5)+
+  labs(x = "Donor Procurement Rate",
+       y = "")+
+  theme(legend.position = "top")
+
+
+```
+
+```{r}
+organdata <- socviz::organdata
+
+DT::datatable(organdata)
+
+
+
+by_country <- organdata |> 
+  group_by(consent_law, country) |>
+  summarize_if(is.numeric, lst(mean, sd), na.rm = TRUE) |>
+  ungroup()
+
+
+```
+
+
+
+```{r}
+
+by_country |>
+  ggplot(aes(x = donors_mean,
+             y = fct_reorder(country, donors_mean),
+             xmin = donors_mean - donors_sd,
+             xmax = donors_mean + donors_sd))+
+  geom_pointrange()+
+  labs(x = "Donor Procurement Range",
+       y = "Country")
+
+
+```
+
+```{r}
+
+o <- ggplot(data = organdata,
+            mapping = aes(x= roads, y = donors, color = world))+
+o + geom_point()+
+  scale_x_continuous()+
+  scale_y_continuous()
+  
+
+
+
+```
+
+
+
+```{r}
+
+ggplot( data = mpg,
+        mapping = 
+          aes(x = displ,
+              y = hwy, 
+              color = class) ) + 
+  geom_point(size = 3) +
+  scale_color_colorblind()
+
+
+```
+
+
+
+
+
